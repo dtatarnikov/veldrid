@@ -5,7 +5,9 @@ using static Vulkan.VulkanNative;
 using static Veldrid.Vk.VulkanUtil;
 using Veldrid.Android;
 using System;
+#if !EXCLUDE_METAL_BACKEND
 using Veldrid.MetalBindings;
+#endif
 
 namespace Veldrid.Vk
 {
@@ -142,12 +144,17 @@ namespace Veldrid.Vk
 
         private static unsafe VkSurfaceKHR CreateNSWindowSurface(VkGraphicsDevice gd, VkInstance instance, NSWindowSwapchainSource nsWindowSource, bool hasExtMetalSurface)
         {
+#if !EXCLUDE_METAL_BACKEND
             NSWindow nswindow = new NSWindow(nsWindowSource.NSWindow);
             return CreateNSViewSurface(gd, instance, new NSViewSwapchainSource(nswindow.contentView), hasExtMetalSurface);
+#else
+            throw new VeldridException($"The Vulkan surface can not be created because Metal support is disabled.");
+#endif
         }
 
         private static unsafe VkSurfaceKHR CreateNSViewSurface(VkGraphicsDevice gd, VkInstance instance, NSViewSwapchainSource nsViewSource, bool hasExtMetalSurface)
         {
+#if !EXCLUDE_METAL_BACKEND
             NSView contentView = new NSView(nsViewSource.NSView);
 
             if (!CAMetalLayer.TryCast(contentView.layer, out var metalLayer))
@@ -175,10 +182,14 @@ namespace Veldrid.Vk
                 CheckResult(result);
                 return surface;
             }
+#else
+            throw new VeldridException($"The Vulkan surface can not be created because Metal support is disabled.");
+#endif
         }
 
         private static VkSurfaceKHR CreateUIViewSurface(VkGraphicsDevice gd, VkInstance instance, UIViewSwapchainSource uiViewSource, bool hasExtMetalSurface)
         {
+#if !EXCLUDE_METAL_BACKEND
             UIView uiView = new UIView(uiViewSource.UIView);
 
             if (!CAMetalLayer.TryCast(uiView.layer, out var metalLayer))
@@ -206,6 +217,9 @@ namespace Veldrid.Vk
                 VkResult result = vkCreateIOSSurfaceMVK(instance, ref surfaceCI, null, out VkSurfaceKHR surface);
                 return surface;
             }
+#else
+            throw new VeldridException($"The Vulkan surface can not be created because Metal support is disabled.");
+#endif
         }
     }
 }

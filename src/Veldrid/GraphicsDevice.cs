@@ -938,7 +938,7 @@ namespace Veldrid
         /// Tries to get a <see cref="BackendInfoMetal"/> for this instance.
         /// This method will only succeed if this is a Metal GraphicsDevice.
         /// </summary>
-        /// <param name="info">If successful, this will contain the <see cref="BackendInfoOpenGL"/> for this instance.</param>
+        /// <param name="info">If successful, this will contain the <see cref="BackendInfoMetal"/> for this instance.</param>
         /// <returns>True if this is an Metal GraphicsDevice and the operation was successful. False otherwise.</returns>
         public virtual bool GetMetalInfo(out BackendInfoMetal info) { info = null; return false; }
 

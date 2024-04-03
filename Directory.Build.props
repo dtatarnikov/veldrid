@@ -1,5 +1,7 @@
-<Project>
-
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RepositoryRootDirectory>$(MSBuildThisFileDirectory)</RepositoryRootDirectory>
@@ -10,9 +12,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <VeldridSpirvVersion>1.0.15</VeldridSpirvVersion>
-    <NativeLibraryLoaderVersion>1.0.13</NativeLibraryLoaderVersion>
-    <VorticeWindowsVersion>2.4.2</VorticeWindowsVersion>
+    <VeldridSpirvVersion Condition="'$(VeldridSpirvVersion)' == ''">1.0.15</VeldridSpirvVersion>
+    <NativeLibraryLoaderVersion Condition="'$(NativeLibraryLoaderVersion)' == ''">1.0.13</NativeLibraryLoaderVersion>
+    <VorticeWindowsVersion Condition="'$(VorticeWindowsVersion)' == ''">2.4.2</VorticeWindowsVersion>
   </PropertyGroup>
 
   <PropertyGroup>

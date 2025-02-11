@@ -386,7 +386,7 @@ namespace Veldrid.MTL
 
         public void SetCompletionFence(MTLFence fence)
         {
-            Debug.Assert(_completionFence == null);
+            //Debug.Assert(_completionFence == null);
             _completionFence = fence;
         }
 

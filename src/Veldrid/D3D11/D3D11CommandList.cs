@@ -1217,15 +1217,15 @@ namespace Veldrid.D3D11
         private unsafe void UpdateSubresource_Workaround(
             ID3D11Resource resource,
             int subresource,
-            Box region,
+            Box? region,
             IntPtr data)
         {
             bool needWorkaround = !_gd.SupportsCommandLists;
             void* pAdjustedSrcData = data.ToPointer();
-            if (needWorkaround)
+            if (needWorkaround && region is Box dstRegion)
             {
-                Debug.Assert(region.Top == 0 && region.Front == 0);
-                pAdjustedSrcData = (byte*)data - region.Left;
+                Debug.Assert(dstRegion.Top == 0 && dstRegion.Front == 0);
+                pAdjustedSrcData = (byte*)data - dstRegion.Left;
             }
 
             _context.UpdateSubresource(resource, subresource, region, (IntPtr)pAdjustedSrcData, 0, 0);

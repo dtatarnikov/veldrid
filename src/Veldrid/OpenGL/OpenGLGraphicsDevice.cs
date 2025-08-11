@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using Veldrid.OpenGL.EAGL;
 using static Veldrid.OpenGL.EGL.EGLNative;
 using NativeLibrary = NativeLibraryLoader.NativeLibrary;
 using System.Runtime.CompilerServices;
@@ -405,35 +404,40 @@ namespace Veldrid.OpenGL
             options.SyncToVerticalBlank = swapchainDescription.SyncToVerticalBlank;
 
             SwapchainSource source = swapchainDescription.Source;
+
+#if !EXCLUDE_METAL_BACKEND
             if (source is UIViewSwapchainSource uiViewSource)
             {
                 InitializeUIView(options, uiViewSource.UIView);
+                return;
             }
-            else if (source is AndroidSurfaceSwapchainSource androidSource)
+#endif
+
+            if (source is AndroidSurfaceSwapchainSource androidSource)
             {
                 IntPtr aNativeWindow = Android.AndroidRuntime.ANativeWindow_fromSurface(
                     androidSource.JniEnv,
                     androidSource.Surface);
                 InitializeANativeWindow(options, aNativeWindow, swapchainDescription);
+                return;
             }
-            else
-            {
-                throw new VeldridException(
-                    "This function does not support creating an OpenGLES GraphicsDevice with the given SwapchainSource.");
-            }
+
+            throw new VeldridException(
+                "This function does not support creating an OpenGLES GraphicsDevice with the given SwapchainSource.");
         }
 
+#if !EXCLUDE_METAL_BACKEND
         private void InitializeUIView(GraphicsDeviceOptions options, IntPtr uIViewPtr)
         {
-            EAGLContext eaglContext = EAGLContext.Create(EAGLRenderingAPI.OpenGLES3);
-            if (!EAGLContext.setCurrentContext(eaglContext.NativePtr))
+            EAGL.EAGLContext eaglContext = EAGL.EAGLContext.Create(EAGL.EAGLRenderingAPI.OpenGLES3);
+            if (!EAGL.EAGLContext.setCurrentContext(eaglContext.NativePtr))
             {
                 throw new VeldridException("Unable to make newly-created EAGLContext current.");
             }
 
             MetalBindings.UIView uiView = new MetalBindings.UIView(uIViewPtr);
 
-            CAEAGLLayer eaglLayer = CAEAGLLayer.New();
+            EAGL.CAEAGLLayer eaglLayer = EAGL.CAEAGLLayer.New();
             eaglLayer.opaque = true;
             eaglLayer.frame = uiView.frame;
             uiView.layer.addSublayer(eaglLayer.NativePtr);
@@ -517,7 +521,7 @@ namespace Veldrid.OpenGL
 
             Action<IntPtr> setCurrentContext = ctx =>
             {
-                if (!EAGLContext.setCurrentContext(ctx))
+                if (!EAGL.EAGLContext.setCurrentContext(ctx))
                 {
                     throw new VeldridException($"Unable to set the thread's current GL context.");
                 }
@@ -599,7 +603,7 @@ namespace Veldrid.OpenGL
                 eaglContext.NativePtr,
                 getProcAddress,
                 setCurrentContext,
-                () => EAGLContext.currentContext.NativePtr,
+                () => EAGL.EAGLContext.currentContext.NativePtr,
                 () => setCurrentContext(IntPtr.Zero),
                 destroyContext,
                 swapBuffers,
@@ -609,6 +613,7 @@ namespace Veldrid.OpenGL
 
             Init(options, platformInfo, (uint)fbWidth, (uint)fbHeight, false);
         }
+#endif
 
         private void InitializeANativeWindow(
             GraphicsDeviceOptions options,

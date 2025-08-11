@@ -1,3 +1,4 @@
+#if !EXCLUDE_METAL_BACKEND
 using System;
 using System.Runtime.InteropServices;
 using Veldrid.MetalBindings;
@@ -38,3 +39,4 @@ namespace Veldrid.OpenGL.EAGL
         private static readonly Selector sel_removeFromSuperlayer = "removeFromSuperlayer";
     }
 }
+#endif

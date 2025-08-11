@@ -1,3 +1,4 @@
+#if !EXCLUDE_METAL_BACKEND
 using System;
 using System.Runtime.InteropServices;
 using Veldrid.MetalBindings;
@@ -47,3 +48,4 @@ namespace Veldrid.OpenGL.EAGL
         OpenGLES3 = 3,
     }
 }
+#endif

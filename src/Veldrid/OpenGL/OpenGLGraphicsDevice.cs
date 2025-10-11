@@ -1,15 +1,14 @@
-﻿using static Veldrid.OpenGLBinding.OpenGLNative;
-using static Veldrid.OpenGL.OpenGLUtil;
-using System;
-using Veldrid.OpenGLBinding;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using static Veldrid.OpenGL.EGL.EGLNative;
-using NativeLibrary = NativeLibraryLoader.NativeLibrary;
 using System.Runtime.CompilerServices;
+using Veldrid.OpenGLBinding;
+using static Veldrid.OpenGLBinding.OpenGLNative;
+using static Veldrid.OpenGL.OpenGLUtil;
+using static Veldrid.OpenGL.EGL.EGLNative;
 
 namespace Veldrid.OpenGL
 {
@@ -442,9 +441,9 @@ namespace Veldrid.OpenGL
             eaglLayer.frame = uiView.frame;
             uiView.layer.addSublayer(eaglLayer.NativePtr);
 
-            NativeLibrary glesLibrary = new NativeLibrary("/System/Library/Frameworks/OpenGLES.framework/OpenGLES");
+            IntPtr glesLibrary = NativeLibrary.Load("/System/Library/Frameworks/OpenGLES.framework/OpenGLES");
 
-            Func<string, IntPtr> getProcAddress = name => glesLibrary.LoadFunction(name);
+            Func<string, IntPtr> getProcAddress = name => NativeLibrary.GetExport(glesLibrary, name);
 
             LoadAllFunctions(eaglContext.NativePtr, getProcAddress, true);
 
@@ -596,7 +595,7 @@ namespace Veldrid.OpenGL
                 eaglLayer.removeFromSuperlayer();
                 eaglLayer.Release();
                 eaglContext.Release();
-                glesLibrary.Dispose();
+                NativeLibrary.Free(glesLibrary);
             };
 
             OpenGLPlatformInfo platformInfo = new OpenGLPlatformInfo(

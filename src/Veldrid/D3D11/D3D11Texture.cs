@@ -142,6 +142,8 @@ namespace Veldrid.D3D11
 
                 DeviceTexture = device.CreateTexture3D(desc3D);
             }
+
+            GC.SuppressFinalize(DeviceTexture);
         }
 
         public D3D11Texture(ID3D11Texture2D existingTexture, TextureType type, PixelFormat format)
@@ -165,6 +167,8 @@ namespace Veldrid.D3D11
                 format,
                 (Usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil);
             TypelessDxgiFormat = D3D11Formats.GetTypelessFormat(DxgiFormat);
+
+            GC.SuppressFinalize(DeviceTexture);
         }
 
         private protected override TextureView CreateFullTextureView(GraphicsDevice gd)

@@ -758,11 +758,7 @@ namespace Veldrid
             uint bufferOffsetInBytes,
             T source) where T : unmanaged
         {
-            ref byte sourceByteRef = ref Unsafe.AsRef<byte>(Unsafe.AsPointer(ref source));
-            fixed (byte* ptr = &sourceByteRef)
-            {
-                UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)ptr, (uint)sizeof(T));
-            }
+            UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)(&source), (uint)sizeof(T));
         }
 
         /// <summary>
@@ -779,11 +775,7 @@ namespace Veldrid
             uint bufferOffsetInBytes,
             ref T source) where T : unmanaged
         {
-            ref byte sourceByteRef = ref Unsafe.AsRef<byte>(Unsafe.AsPointer(ref source));
-            fixed (byte* ptr = &sourceByteRef)
-            {
-                UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)ptr, Util.USizeOf<T>());
-            }
+            fixed (T* ptr = &source) UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)ptr, Util.USizeOf<T>());
         }
 
         /// <summary>
@@ -802,11 +794,7 @@ namespace Veldrid
             ref T source,
             uint sizeInBytes) where T : unmanaged
         {
-            ref byte sourceByteRef = ref Unsafe.AsRef<byte>(Unsafe.AsPointer(ref source));
-            fixed (byte* ptr = &sourceByteRef)
-            {
-                UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)ptr, sizeInBytes);
-            }
+            fixed (T* ptr = &source) UpdateBuffer(buffer, bufferOffsetInBytes, (IntPtr)ptr, sizeInBytes);
         }
 
         /// <summary>

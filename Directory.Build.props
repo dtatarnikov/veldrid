@@ -1,7 +1,5 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-  
+
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RepositoryRootDirectory>$(MSBuildThisFileDirectory)</RepositoryRootDirectory>
@@ -9,7 +7,10 @@
     <OutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)bin\$(Configuration)'))\$(MSBuildProjectName)</OutputPath>
     <BaseIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(RepositoryRootDirectory)bin\obj\$(MSBuildProjectName)'))\</BaseIntermediateOutputPath>
     <PackageOutputPath>$(BinDir)\Packages\$(Configuration)</PackageOutputPath>
+    <ExternalProjectRef>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(RepositoryRootDirectory)../'))</ExternalProjectRef>
   </PropertyGroup>
+
+  <Import Condition="'$(ExternalProjectRef)' != ''" Project="$(ExternalProjectRef)" />
 
   <PropertyGroup>
     <VeldridSpirvVersion>1.0.15</VeldridSpirvVersion>

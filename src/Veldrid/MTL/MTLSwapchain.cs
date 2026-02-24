@@ -156,14 +156,17 @@ namespace Veldrid.MTL
 
         public override void Dispose()
         {
-            if (_drawable.NativePtr != IntPtr.Zero)
+            if (!_disposed)
             {
-                ObjectiveCRuntime.release(_drawable.NativePtr);
-            }
-            _framebuffer.Dispose();
-            ObjectiveCRuntime.release(_metalLayer.NativePtr);
+                if (_drawable.NativePtr != IntPtr.Zero)
+                {
+                    ObjectiveCRuntime.release(_drawable.NativePtr);
+                }
+                _framebuffer.Dispose();
+                ObjectiveCRuntime.release(_metalLayer.NativePtr);
 
-            _disposed = true;
+                _disposed = true;
+            }
         }
     }
 }

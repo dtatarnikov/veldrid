@@ -45,9 +45,9 @@ namespace Veldrid.MTL
         private bool _disposed;
 
         private readonly List<MTLBuffer> _availableStagingBuffers = new List<MTLBuffer>();
-        private readonly Dictionary<MTLCommandBuffer, List<MTLBuffer>> _submittedStagingBuffers = new Dictionary<MTLCommandBuffer, List<MTLBuffer>>();
+        private readonly CommandBufferUsageList<MTLBuffer> _submittedStagingBuffers = new CommandBufferUsageList<MTLBuffer>();
         private readonly object _submittedCommandsLock = new object();
-        private MTLFence _completionFence;
+        private readonly CommandBufferUsageList<MTLFence> _completionFences = new CommandBufferUsageList<MTLFence>();
 
         public MTLCommandBuffer CommandBuffer => _cb;
 
@@ -65,7 +65,7 @@ namespace Veldrid.MTL
         {
             _cb.commit();
             MTLCommandBuffer ret = _cb;
-            _cb = default(MTLCommandBuffer);
+            _cb = default;
             return ret;
         }
 
@@ -395,12 +395,7 @@ namespace Veldrid.MTL
 
             lock (_submittedCommandsLock)
             {
-                if (!_submittedStagingBuffers.TryGetValue(_cb, out List<MTLBuffer> bufferList))
-                {
-                    _submittedStagingBuffers[_cb] = bufferList = new List<MTLBuffer>();
-                }
-
-                bufferList.Add(staging);
+                _submittedStagingBuffers.Add(_cb, staging);
             }
         }
 
@@ -424,23 +419,27 @@ namespace Veldrid.MTL
             return Util.AssertSubtype<DeviceBuffer, MTLBuffer>(staging);
         }
 
-        public void SetCompletionFence(MTLFence fence)
+        public void SetCompletionFence(MTLCommandBuffer cb, MTLFence fence)
         {
-            //Debug.Assert(_completionFence == null);
-            _completionFence = fence;
+            lock (_submittedCommandsLock)
+            {
+                Debug.Assert(!_completionFences.Contains(cb));
+                _completionFences.Add(cb, fence);
+            }
         }
 
         public void OnCompleted(MTLCommandBuffer cb)
         {
-            _completionFence?.Set();
-            _completionFence = null;
-
             lock (_submittedCommandsLock)
             {
-                if (_submittedStagingBuffers.TryGetValue(cb, out List<MTLBuffer> bufferList))
+                foreach (MTLFence fence in _completionFences.EnumerateAndRemove(cb))
                 {
-                    _availableStagingBuffers.AddRange(bufferList);
-                    _submittedStagingBuffers.Remove(cb);
+                    fence.Set();
+                }
+
+                foreach (MTLBuffer buffer in _submittedStagingBuffers.EnumerateAndRemove(cb))
+                {
+                    _availableStagingBuffers.Add(buffer);
                 }
             }
         }
@@ -1329,12 +1328,9 @@ namespace Veldrid.MTL
                         buffer.Dispose();
                     }
 
-                    foreach (KeyValuePair<MTLCommandBuffer, List<MTLBuffer>> kvp in _submittedStagingBuffers)
+                    foreach (MTLBuffer buffer in _submittedStagingBuffers.EnumerateItems())
                     {
-                        foreach (MTLBuffer buffer in kvp.Value)
-                        {
-                            buffer.Dispose();
-                        }
+                        buffer.Dispose();
                     }
 
                     _submittedStagingBuffers.Clear();

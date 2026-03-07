@@ -24,7 +24,7 @@ namespace Veldrid.MTL
         private BackendInfoMetal _metalInfo;
 
         private readonly object _submittedCommandsLock = new object();
-        private readonly Dictionary<MTLCommandBuffer, MTLCommandList> _submittedCLs = new Dictionary<MTLCommandBuffer, MTLCommandList>();
+        private readonly CommandBufferUsageList<MTLCommandList> _submittedCLs = new CommandBufferUsageList<MTLCommandList>();
         private MTLCommandBuffer _latestSubmittedCB;
 
         private readonly object _resetEventsLock = new object();
@@ -172,13 +172,14 @@ namespace Veldrid.MTL
         {
             lock (_submittedCommandsLock)
             {
-                MTLCommandList cl = _submittedCLs[cb];
-                _submittedCLs.Remove(cb);
-                cl.OnCompleted(cb);
+                foreach (MTLCommandList cl in _submittedCLs.EnumerateAndRemove(cb))
+                {
+                    cl.OnCompleted(cb);
+                }
 
                 if (_latestSubmittedCB.NativePtr == cb.NativePtr)
                 {
-                    _latestSubmittedCB = default(MTLCommandBuffer);
+                    _latestSubmittedCB = default;
                 }
             }
 
@@ -207,7 +208,7 @@ namespace Veldrid.MTL
             {
                 if (fence != null)
                 {
-                    mtlCL.SetCompletionFence(Util.AssertSubtype<Fence, MTLFence>(fence));
+                    mtlCL.SetCompletionFence(mtlCL.CommandBuffer, Util.AssertSubtype<Fence, MTLFence>(fence));
                 }
 
                 _submittedCLs.Add(mtlCL.CommandBuffer, mtlCL);

@@ -74,9 +74,6 @@ namespace Veldrid.MTL
             }
             else if (source is UIViewSwapchainSource uiViewSource)
             {
-                UIScreen mainScreen = UIScreen.mainScreen;
-                CGFloat nativeScale = mainScreen.nativeScale;
-
                 _uiView = new UIView(uiViewSource.UIView);
                 CGSize viewSize = _uiView.frame.size;
                 width = (uint)viewSize.width;

@@ -27,9 +27,9 @@ namespace Veldrid.MTL
 
         public override bool IsDisposed => _disposed;
 
-        public MetalBindings.MTLBuffer DeviceBuffer { get; private set; }
+        public MetalBindings.MTLBuffer DeviceBuffer { get; }
         
-        public unsafe void* Pointer { get; private set; }
+        public unsafe void* Pointer { get; }
 
         public MTLBuffer(ref BufferDescription bd, MTLGraphicsDevice gd)
         {

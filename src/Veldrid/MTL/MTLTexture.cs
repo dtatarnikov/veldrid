@@ -44,7 +44,7 @@ namespace Veldrid.MTL
 
         public override bool IsDisposed => _disposed;
 
-        public MTLTexture(ref TextureDescription description, MTLGraphicsDevice _gd)
+        public MTLTexture(ref TextureDescription description, MTLGraphicsDevice gd)
         {
             Width = description.Width;
             Height = description.Height;
@@ -66,7 +66,7 @@ namespace Veldrid.MTL
 
             if (Usage != TextureUsage.Staging)
             {
-                MTLStorageMode = isDepth && _gd.PreferMemorylessDepthTargets ? MTLStorageMode.Memoryless : MTLStorageMode.Private;
+                MTLStorageMode = isDepth && gd.PreferMemorylessDepthTargets ? MTLStorageMode.Memoryless : MTLStorageMode.Private;
 
                 MTLTextureDescriptor texDescriptor = MTLTextureDescriptor.New();
                 texDescriptor.width = (UIntPtr)Width;
@@ -80,7 +80,7 @@ namespace Veldrid.MTL
                 texDescriptor.textureUsage = MTLFormats.VdToMTLTextureUsage(Usage);
                 texDescriptor.storageMode = MTLStorageMode;
 
-                DeviceTexture = _gd.Device.newTextureWithDescriptor(texDescriptor);
+                DeviceTexture = gd.Device.newTextureWithDescriptor(texDescriptor);
                 ObjectiveCRuntime.release(texDescriptor.NativePtr);
             }
             else
@@ -99,7 +99,7 @@ namespace Veldrid.MTL
                 }
                 totalStorageSize *= ArrayLayers;
 
-                StagingBuffer = _gd.Device.newBufferWithLengthOptions(
+                StagingBuffer = gd.Device.newBufferWithLengthOptions(
                     (UIntPtr)totalStorageSize,
                     MTLResourceOptions.StorageModeShared);
                 

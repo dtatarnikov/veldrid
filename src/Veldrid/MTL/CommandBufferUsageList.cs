@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Veldrid.MetalBindings;
@@ -7,20 +8,20 @@ namespace Veldrid.MTL
 {
     internal class CommandBufferUsageList<T>
     {
-        private readonly List<(MTLCommandBuffer buffer, T value)> items = new List<(MTLCommandBuffer buffer, T item)>();
+        private readonly List<(MTLCommandBuffer buffer, T value)> _items = new List<(MTLCommandBuffer buffer, T item)>();
 
         public void Add(MTLCommandBuffer cb, T value)
-            => items.Add((cb, value));
+            => _items.Add((cb, value));
 
         public ItemsEnumerator EnumerateItems()
-            => new ItemsEnumerator(items);
+            => new ItemsEnumerator(_items);
 
         public RemovalEnumerator EnumerateAndRemove(MTLCommandBuffer cb)
-            => new RemovalEnumerator(items, cb);
+            => new RemovalEnumerator(_items, cb);
 
         public bool Contains(MTLCommandBuffer cb)
         {
-            foreach (var (buffer, _) in items)
+            foreach (var (buffer, _) in _items)
             {
                 if (buffer.Equals(cb))
                     return true;
@@ -30,35 +31,35 @@ namespace Veldrid.MTL
         }
 
         public void Clear()
-            => items.Clear();
+            => _items.Clear();
 
         /// <summary>
         /// This is a basic enumerator for the list.
         /// </summary>
         public struct ItemsEnumerator : IEnumerator<T>, IEnumerable
         {
-            private readonly List<(MTLCommandBuffer buffer, T value)> list;
-            private int index;
+            private readonly List<(MTLCommandBuffer buffer, T value)> _list;
+            private int _index;
 
             public ItemsEnumerator(List<(MTLCommandBuffer buffer, T value)> list)
             {
-                this.list = list;
+                this._list = list;
             }
 
             public bool MoveNext()
             {
-                if (index == list.Count)
+                if (_index == _list.Count)
                     return false;
 
-                Current = list[index].value;
-                index++;
+                Current = _list[_index].value;
+                _index++;
 
                 return true;
             }
 
             public void Reset()
             {
-                index = 0;
+                _index = 0;
             }
 
             public T Current { get; private set; }
@@ -84,44 +85,44 @@ namespace Veldrid.MTL
         /// </summary>
         public struct RemovalEnumerator : IEnumerator<T>, IEnumerable
         {
-            private readonly List<(MTLCommandBuffer buffer, T value)> list;
-            private readonly MTLCommandBuffer cb;
-            private readonly int count;
-            private int index;
+            private readonly List<(MTLCommandBuffer buffer, T value)> _list;
+            private readonly MTLCommandBuffer _cb;
+            private readonly int _count;
+            private int _index;
 
             public RemovalEnumerator(List<(MTLCommandBuffer buffer, T value)> list, MTLCommandBuffer cb)
             {
-                this.list = list;
-                this.cb = cb;
+                this._list = list;
+                this._cb = cb;
 
-                count = list.Count;
-                list.EnsureCapacity(count * 2);
+                _count = list.Count;
+                list.EnsureCapacity(_count * 2);
             }
 
             public bool MoveNext()
             {
                 while (true)
                 {
-                    if (index == count)
+                    if (_index == _count)
                         return false;
 
-                    if (list[index].buffer.Equals(cb))
+                    if (_list[_index].buffer.Equals(_cb))
                         break;
 
                     // Track the item to be kept.
-                    list.Add(list[index]);
-                    index++;
+                    _list.Add(_list[_index]);
+                    _index++;
                 }
 
-                Current = list[index].value;
-                index++;
+                Current = _list[_index].value;
+                _index++;
 
                 return true;
             }
 
             public void Reset()
             {
-                index = 0;
+                _index = 0;
             }
 
             public T Current { get; private set; }
@@ -130,14 +131,14 @@ namespace Veldrid.MTL
 
             public void Dispose()
             {
-                if (list.Count == 0)
+                if (_list.Count == 0)
                     return;
 
-                int toKeepItemCount = list.Count - count;
-                var listSpan = CollectionsMarshal.AsSpan(list);
+                int toKeepItemCount = _list.Count - _count;
+                Span<(MTLCommandBuffer buffer, T value)> listSpan = CollectionsMarshal.AsSpan(_list);
 
-                listSpan.Slice(count, toKeepItemCount).CopyTo(listSpan);
-                list.RemoveRange(toKeepItemCount, list.Count - toKeepItemCount);
+                listSpan.Slice(_count, toKeepItemCount).CopyTo(listSpan);
+                _list.RemoveRange(toKeepItemCount, _list.Count - toKeepItemCount);
             }
 
             public RemovalEnumerator GetEnumerator() => this;

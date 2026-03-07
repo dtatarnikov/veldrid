@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Text;
 using Veldrid.MetalBindings;
 
@@ -10,8 +9,8 @@ namespace Veldrid.MTL
         private readonly MTLGraphicsDevice _device;
         private bool _disposed;
 
-        public MTLLibrary Library { get; private set; }
-        public MTLFunction Function { get; private set; }
+        public MTLLibrary Library { get; }
+        public MTLFunction Function { get; }
         public override string Name { get; set; }
         public bool HasFunctionConstants { get; }
         public override bool IsDisposed => _disposed;

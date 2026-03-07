@@ -109,10 +109,10 @@ namespace Veldrid.MTL
                 description.DepthFormat,
                 format);
 
-            getNextDrawable();
+            GetNextDrawable();
         }
 
-        private bool getNextDrawable()
+        private bool GetNextDrawable()
         {
             if (!_drawable.IsNull)
             {
@@ -142,10 +142,10 @@ namespace Veldrid.MTL
             _metalLayer.drawableSize = new CGSize(width, height);
 
 
-            getNextDrawable();
+            GetNextDrawable();
         }
 
-        public bool EnsureDrawableAvailable() => !_drawable.IsNull || getNextDrawable();
+        public bool EnsureDrawableAvailable() => !_drawable.IsNull || GetNextDrawable();
 
         public void InvalidateDrawable()
         {

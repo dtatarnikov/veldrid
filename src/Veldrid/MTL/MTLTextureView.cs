@@ -1,4 +1,3 @@
-using System;
 using Veldrid.MetalBindings;
 
 namespace Veldrid.MTL
@@ -23,7 +22,7 @@ namespace Veldrid.MTL
                 || Format != Target.Format)
             {
                 _hasTextureView = true;
-                var effectiveArrayLayers = Target.Usage.HasFlag(TextureUsage.Cubemap) ? ArrayLayers * 6 : ArrayLayers;
+                uint effectiveArrayLayers = Target.Usage.HasFlag(TextureUsage.Cubemap) ? ArrayLayers * 6 : ArrayLayers;
                 TargetDeviceTexture = targetMTLTexture.DeviceTexture.newTextureView(
                     MTLFormats.VdToMTLPixelFormat(Format, (description.Target.Usage & TextureUsage.DepthStencil) != 0),
                     targetMTLTexture.MTLTextureType,

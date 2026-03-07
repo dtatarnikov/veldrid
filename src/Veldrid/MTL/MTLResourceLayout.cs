@@ -4,6 +4,7 @@ namespace Veldrid.MTL
     {
         private readonly ResourceBindingInfo[] _bindingInfosByVdIndex;
         private bool _disposed;
+
         public uint BufferCount { get; }
         public uint TextureCount { get; }
         public uint SamplerCount { get; }

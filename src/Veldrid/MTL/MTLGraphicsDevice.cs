@@ -80,7 +80,7 @@ namespace Veldrid.MTL
                 bufferRangeBinding: true,
                 shaderFloat64: false);
             ResourceBindingModel = options.ResourceBindingModel;
-            
+            PreferMemorylessDepthTargets = metalOptions.PreferMemorylessDepthTargets;
             if (MetalFeatures.IsMacOS)
             {
                 _libSystem = NativeLibrary.Load("libSystem.dylib");

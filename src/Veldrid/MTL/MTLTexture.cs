@@ -6,17 +6,21 @@ namespace Veldrid.MTL
     internal class MTLTexture : Texture
     {
         private bool _disposed;
+        
+        public unsafe void* StagingBufferPointer { get; }
 
         /// <summary>
         /// The native MTLTexture object. This property is only valid for non-staging Textures.
         /// </summary>
-        public MetalBindings.MTLTexture DeviceTexture { get; }
+        public virtual MetalBindings.MTLTexture DeviceTexture { get; }
         /// <summary>
         /// The staging MTLBuffer object. This property is only valid for staging Textures.
         /// </summary>
-        public MetalBindings.MTLBuffer StagingBuffer { get; }
+        public virtual MetalBindings.MTLBuffer StagingBuffer { get; }
         
-        public unsafe void* StagingBufferPointer { get; private set; }
+        public virtual MTLPixelFormat MTLPixelFormat { get; }
+        public virtual MTLTextureType MTLTextureType { get; }
+        public virtual MTLStorageMode MTLStorageMode { get; }
 
         public override PixelFormat Format { get; }
 
@@ -35,11 +39,10 @@ namespace Veldrid.MTL
         public override TextureType Type { get; }
 
         public override TextureSampleCount SampleCount { get; }
+
         public override string Name { get; set; }
+
         public override bool IsDisposed => _disposed;
-        public MTLPixelFormat MTLPixelFormat { get; }
-        public MTLTextureType MTLTextureType { get; }
-        public MTLStorageMode MTLStorageMode { get; }
 
         public MTLTexture(ref TextureDescription description, MTLGraphicsDevice _gd)
         {
@@ -129,21 +132,8 @@ namespace Veldrid.MTL
                     (Usage & TextureUsage.Cubemap) != 0);
         }
 
-        public MTLTexture(CAMetalDrawable drawable, CGSize size, PixelFormat format)
+        protected MTLTexture()
         {
-            DeviceTexture = drawable.texture;
-            Width = (uint)size.width;
-            Height = (uint)size.height;
-            Depth = 1;
-            ArrayLayers = 1;
-            MipLevels = 1;
-            Format = format;
-            Usage = TextureUsage.RenderTarget;
-            Type = TextureType.Texture2D;
-            SampleCount = TextureSampleCount.Count1;
-
-            MTLPixelFormat = MTLFormats.VdToMTLPixelFormat(Format, false);
-            MTLTextureType = MTLTextureType.Type2D;
         }
 
         internal uint GetSubresourceSize(uint mipLevel, uint arrayLayer)

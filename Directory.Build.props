@@ -13,17 +13,16 @@
   <Import Condition="'$(ExternalProjectRef)' != ''" Project="$(ExternalProjectRef)" />
 
   <PropertyGroup>
-    <VeldridSpirvVersion>1.0.15</VeldridSpirvVersion>
-    <VorticeWindowsVersion>2.4.2</VorticeWindowsVersion>
+    <VorticeWindowsVersion>3.5.0</VorticeWindowsVersion>
     <NerdbankGitVersioningVersion>3.4.255</NerdbankGitVersioningVersion>
   </PropertyGroup>
 
   <PropertyGroup>
     <PackageLicenseUrl>https://raw.githubusercontent.com/mellinoe/veldrid/master/LICENSE</PackageLicenseUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Copyright>Copyright 2020 (c) Eric Mellino. All rights reserved.</Copyright>
-    <Authors>Eric Mellino</Authors>
-    <RepositoryUrl>https://github.com/mellinoe/veldrid</RepositoryUrl>
+    <Copyright>Copyright 2026 (c) Eric Mellino and Veldrid contributors. All rights reserved.</Copyright>
+    <Authors>Eric Mellino and contributors</Authors>
+    <RepositoryUrl>https://github.com/dtatarnikov/veldrid</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup>

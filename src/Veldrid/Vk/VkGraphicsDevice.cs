@@ -64,12 +64,9 @@ namespace Veldrid.Vk
         private readonly List<VkTexture> _availableStagingTextures = new List<VkTexture>();
         private readonly List<VkBuffer> _availableStagingBuffers = new List<VkBuffer>();
 
-        private readonly Dictionary<VkCommandBuffer, VkTexture> _submittedStagingTextures
-            = new Dictionary<VkCommandBuffer, VkTexture>();
-        private readonly Dictionary<VkCommandBuffer, VkBuffer> _submittedStagingBuffers
-            = new Dictionary<VkCommandBuffer, VkBuffer>();
-        private readonly Dictionary<VkCommandBuffer, SharedCommandPool> _submittedSharedCommandPools
-            = new Dictionary<VkCommandBuffer, SharedCommandPool>();
+        private readonly Dictionary<VkCommandBuffer, VkTexture> _submittedStagingTextures = new Dictionary<VkCommandBuffer, VkTexture>();
+        private readonly Dictionary<VkCommandBuffer, VkBuffer> _submittedStagingBuffers = new Dictionary<VkCommandBuffer, VkBuffer>();
+        private readonly Dictionary<VkCommandBuffer, SharedCommandPool> _submittedSharedCommandPools = new Dictionary<VkCommandBuffer, SharedCommandPool>();
 
         public override string DeviceName => _deviceName;
 
@@ -650,14 +647,14 @@ namespace Veldrid.Vk
             string message = Util.GetString(pMessage);
             VkDebugReportFlagsEXT debugReportFlags = (VkDebugReportFlagsEXT)flags;
 
+            string fullMessage = $"[{debugReportFlags}] ({objectType}) {message}";
+            
 #if DEBUG
             if (Debugger.IsAttached)
             {
                 Debugger.Break();
             }
 #endif
-
-            string fullMessage = $"[{debugReportFlags}] ({objectType}) {message}";
 
             Console.WriteLine(fullMessage);
             return 0;

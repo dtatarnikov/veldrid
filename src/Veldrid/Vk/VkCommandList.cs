@@ -104,13 +104,15 @@ namespace Veldrid.Vk
                 rrc.Increment();
             }
 
-            _submittedStagingInfos.Add(cb, _currentStagingInfo);
-            _currentStagingInfo = null;
+            lock (_stagingLock)
+            {
+                _submittedStagingInfos.Add(cb, _currentStagingInfo);
+                _currentStagingInfo = null;
+            }
         }
 
         public void CommandBufferCompleted(VkCommandBuffer completedCB)
         {
-
             lock (_commandBufferListLock)
             {
                 for (int i = 0; i < _submittedCommandBuffers.Count; i++)

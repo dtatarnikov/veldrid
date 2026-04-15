@@ -16,14 +16,7 @@ namespace Veldrid.OpenGL
         {
             uint error = glGetError();
             if (error != 0)
-            {
-                if (Debugger.IsAttached)
-                {
-                    Debugger.Break();
-                }
-
                 throw new VeldridException("glGetError indicated an error: " + (ErrorCode)error);
-            }
         }
 
         internal static unsafe void SetObjectLabel(ObjectLabelIdentifier identifier, uint target, string name)

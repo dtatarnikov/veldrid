@@ -1188,10 +1188,7 @@ namespace Veldrid.OpenGL
 
                             if (resultPtr->Map)
                             {
-                                ExecuteMapResource(
-                                    resourceToMap,
-                                    resetEvent,
-                                    resultPtr);
+                                ExecuteMapResource(resourceToMap, resetEvent, resultPtr);
                             }
                             else
                             {
@@ -1294,7 +1291,7 @@ namespace Veldrid.OpenGL
                             throw new InvalidOperationException("Invalid command type: " + workItem.Type);
                     }
                 }
-                catch (Exception e) when (!Debugger.IsAttached)
+                catch (Exception e)
                 {
                     lock (_exceptionsLock)
                     {

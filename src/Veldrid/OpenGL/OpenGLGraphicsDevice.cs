@@ -23,12 +23,12 @@ namespace Veldrid.OpenGL
         private GraphicsBackend _backendType;
         private GraphicsDeviceFeatures _features;
         private uint _vao;
-        private readonly ConcurrentQueue<OpenGLDeferredResource> _resourcesToDispose
-            = new ConcurrentQueue<OpenGLDeferredResource>();
+        private readonly ConcurrentQueue<OpenGLDeferredResource> _resourcesToDispose = new ConcurrentQueue<OpenGLDeferredResource>();
         private IntPtr _glContext;
         private Action<IntPtr> _makeCurrent;
         private Func<IntPtr> _getCurrentContext;
         private Action<IntPtr> _deleteContext;
+        private Action _clearCurrentContext;
         private Action _swapBuffers;
         private Action<bool> _setSyncToVBlank;
         private OpenGLSwapchainFramebuffer _swapchainFramebuffer;
@@ -50,13 +50,11 @@ namespace Veldrid.OpenGL
         private BlockingCollection<ExecutionThreadWorkItem> _workItems;
         private ExecutionThread _executionThread;
         private readonly object _commandListDisposalLock = new object();
-        private readonly Dictionary<OpenGLCommandList, int> _submittedCommandListCounts
-            = new Dictionary<OpenGLCommandList, int>();
+        private readonly Dictionary<OpenGLCommandList, int> _submittedCommandListCounts = new Dictionary<OpenGLCommandList, int>();
         private readonly HashSet<OpenGLCommandList> _commandListsToDispose = new HashSet<OpenGLCommandList>();
 
         private readonly object _mappedResourceLock = new object();
-        private readonly Dictionary<MappedResourceCacheKey, MappedResourceInfoWithStaging> _mappedResources
-            = new Dictionary<MappedResourceCacheKey, MappedResourceInfoWithStaging>();
+        private readonly Dictionary<MappedResourceCacheKey, MappedResourceInfoWithStaging> _mappedResources = new Dictionary<MappedResourceCacheKey, MappedResourceInfoWithStaging>();
 
         private readonly object _resetEventsLock = new object();
         private readonly List<ManualResetEvent[]> _resetEvents = new List<ManualResetEvent[]>();
@@ -128,6 +126,7 @@ namespace Veldrid.OpenGL
             _makeCurrent = platformInfo.MakeCurrent;
             _getCurrentContext = platformInfo.GetCurrentContext;
             _deleteContext = platformInfo.DeleteContext;
+            _clearCurrentContext = platformInfo.ClearCurrentContext;
             _swapBuffers = platformInfo.SwapBuffers;
             _setSyncToVBlank = platformInfo.SetSyncToVerticalBlank;
             LoadGetString(_glContext, platformInfo.GetProcAddress);
@@ -314,7 +313,7 @@ namespace Veldrid.OpenGL
                 platformInfo.ResizeSwapchain);
 
             _workItems = new BlockingCollection<ExecutionThreadWorkItem>(new ConcurrentQueue<ExecutionThreadWorkItem>());
-            platformInfo.ClearCurrentContext();
+            _clearCurrentContext();
             _executionThread = new ExecutionThread(this, _workItems, _makeCurrent, _glContext);
             _openglInfo = new BackendInfoOpenGL(this);
 
@@ -1144,6 +1143,7 @@ namespace Veldrid.OpenGL
                 _context = context;
                 Thread thread = new Thread(Run);
                 thread.IsBackground = true;
+                thread.Name = "OpenGL Worker";
                 thread.Start();
             }
 
@@ -1212,6 +1212,7 @@ namespace Veldrid.OpenGL
                         }
                         break;
                         case WorkItemType.UpdateTexture:
+                        {
                             Texture texture = (Texture)workItem.Object0;
                             StagingMemoryPool pool = _gd.StagingMemoryPool;
                             StagingBlock argBlock = pool.RetrieveById(workItem.UInt0);
@@ -1224,7 +1225,8 @@ namespace Veldrid.OpenGL
 
                             pool.Free(argBlock);
                             pool.Free(textureData);
-                            break;
+                        }
+                        break;
                         case WorkItemType.GenericAction:
                         {
                             ((Action)workItem.Object0)();
@@ -1235,12 +1237,12 @@ namespace Veldrid.OpenGL
                             // Check if the OpenGL context has already been destroyed by the OS. If so, just exit out.
                             uint error = glGetError();
                             if (error == (uint)ErrorCode.InvalidOperation)
-                            {
                                 return;
-                            }
+                            
                             _makeCurrent(_gd._glContext);
 
                             _gd.FlushDisposables();
+                            _gd._clearCurrentContext();
                             _gd._deleteContext(_gd._glContext);
                             _gd.StagingMemoryPool.Dispose();
                             _terminated = true;
@@ -1248,7 +1250,7 @@ namespace Veldrid.OpenGL
                         break;
                         case WorkItemType.SetSyncToVerticalBlank:
                         {
-                            bool value = workItem.UInt0 == 1 ? true : false;
+                            bool value = workItem.UInt0 == 1;
                             _gd._setSyncToVBlank(value);
                         }
                         break;
@@ -1300,10 +1302,7 @@ namespace Veldrid.OpenGL
                 }
             }
 
-            private void ExecuteMapResource(
-                MappableResource resource,
-                EventWaitHandle waitHandle,
-                MapParams* result)
+            private void ExecuteMapResource(MappableResource resource, EventWaitHandle waitHandle, MapParams* result)
             {
                 uint subresource = result->Subresource;
                 MapMode mode = result->MapMode;
@@ -1570,7 +1569,6 @@ namespace Veldrid.OpenGL
                             if (_gd.Extensions.ARB_DirectStateAccess)
                             {
                                 glUnmapNamedBuffer(buffer.Buffer);
-                                CheckLastError();
                             }
                             else
                             {
@@ -1578,6 +1576,11 @@ namespace Veldrid.OpenGL
                                 CheckLastError();
 
                                 glUnmapBuffer(BufferTarget.CopyWriteBuffer);
+                            }
+
+                            uint error = glGetError();
+                            if (error != (uint)ErrorCode.InvalidOperation) // Check if the OpenGL context has not been destroyed by the OS -> check last error
+                            {
                                 CheckLastError();
                             }
                         }
@@ -1624,7 +1627,6 @@ namespace Veldrid.OpenGL
                         throw new VeldridException(
                             "Error(s) were encountered during the execution of OpenGL commands. See InnerException for more information.",
                             innerException);
-
                     }
                 }
             }
@@ -1640,9 +1642,11 @@ namespace Veldrid.OpenGL
 
                 _workItems.Add(new ExecutionThreadWorkItem(resource, &mrp, executionEvent));
                 executionEvent.WaitOne();
-
+                
                 if (!mrp.Succeeded)
                     throw new VeldridException("Failed to map OpenGL resource.");
+                
+                CheckExceptions();
 
                 return new MappedResource(resource, mode, mrp.Data, mrp.DataSize, mrp.Subresource, mrp.RowPitch, mrp.DepthPitch);
             }
@@ -1657,11 +1661,14 @@ namespace Veldrid.OpenGL
 
                 _workItems.Add(new ExecutionThreadWorkItem(resource, &mrp, executionEvent));
                 executionEvent.WaitOne();
+
+                CheckExceptions();
             }
 
             public void ExecuteCommands(OpenGLCommandEntryList entryList)
             {
                 CheckExceptions();
+
                 entryList.Parent.OnSubmitted(entryList);
                 _workItems.Add(new ExecutionThreadWorkItem(entryList));
             }

@@ -754,9 +754,7 @@ namespace Veldrid.OpenGL
             }
         }
 
-        private protected override void SubmitCommandsCore(
-            CommandList cl,
-            Fence fence)
+        private protected override void SubmitCommandsCore(CommandList cl, Fence fence)
         {
             lock (_commandListDisposalLock)
             {
@@ -1301,6 +1299,23 @@ namespace Veldrid.OpenGL
                     }
                 }
             }
+            
+            private void CheckExceptions()
+            {
+                lock (_exceptionsLock)
+                {
+                    if (_exceptions.Count > 0)
+                    {
+                        Exception innerException = _exceptions.Count == 1
+                            ? _exceptions[0]
+                            : new AggregateException(_exceptions.ToArray());
+                        _exceptions.Clear();
+                        throw new VeldridException(
+                            "Error(s) were encountered during the execution of OpenGL commands. See InnerException for more information.",
+                            innerException);
+                    }
+                }
+            }
 
             private void ExecuteMapResource(MappableResource resource, EventWaitHandle waitHandle, MapParams* result)
             {
@@ -1569,18 +1584,14 @@ namespace Veldrid.OpenGL
                             if (_gd.Extensions.ARB_DirectStateAccess)
                             {
                                 glUnmapNamedBuffer(buffer.Buffer);
+                                CheckLastError();
                             }
                             else
                             {
                                 glBindBuffer(BufferTarget.CopyWriteBuffer, buffer.Buffer);
                                 CheckLastError();
-
+                                
                                 glUnmapBuffer(BufferTarget.CopyWriteBuffer);
-                            }
-
-                            uint error = glGetError();
-                            if (error != (uint)ErrorCode.InvalidOperation) // Check if the OpenGL context has not been destroyed by the OS -> check last error
-                            {
                                 CheckLastError();
                             }
                         }
@@ -1614,23 +1625,6 @@ namespace Veldrid.OpenGL
                 waitHandle.Set();
             }
 
-            private void CheckExceptions()
-            {
-                lock (_exceptionsLock)
-                {
-                    if (_exceptions.Count > 0)
-                    {
-                        Exception innerException = _exceptions.Count == 1
-                            ? _exceptions[0]
-                            : new AggregateException(_exceptions.ToArray());
-                        _exceptions.Clear();
-                        throw new VeldridException(
-                            "Error(s) were encountered during the execution of OpenGL commands. See InnerException for more information.",
-                            innerException);
-                    }
-                }
-            }
-
             public MappedResource Map(MappableResource resource, MapMode mode, uint subresource)
             {
                 CheckExceptions();
@@ -1658,7 +1652,7 @@ namespace Veldrid.OpenGL
                 MapParams mrp = new MapParams();
                 mrp.Map = false;
                 mrp.Subresource = subresource;
-
+                
                 _workItems.Add(new ExecutionThreadWorkItem(resource, &mrp, executionEvent));
                 executionEvent.WaitOne();
 

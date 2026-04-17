@@ -1517,6 +1517,7 @@ namespace Veldrid.OpenGL
                     (IntPtr)sourceOffset,
                     (IntPtr)destinationOffset,
                     sizeInBytes);
+                CheckLastError();
             }
             else
             {

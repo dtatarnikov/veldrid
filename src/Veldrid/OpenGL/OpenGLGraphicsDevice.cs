@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Veldrid.OpenGLBinding;
-using static Veldrid.OpenGLBinding.OpenGLNative;
-using static Veldrid.OpenGL.OpenGLUtil;
 using static Veldrid.OpenGL.EGL.EGLNative;
+using static Veldrid.OpenGL.OpenGLUtil;
+using static Veldrid.OpenGLBinding.OpenGLNative;
 
 namespace Veldrid.OpenGL
 {
@@ -54,7 +54,7 @@ namespace Veldrid.OpenGL
         private readonly HashSet<OpenGLCommandList> _commandListsToDispose = new HashSet<OpenGLCommandList>();
 
         private readonly object _mappedResourceLock = new object();
-        private readonly Dictionary<MappedResourceCacheKey, MappedResourceInfoWithStaging> _mappedResources = new Dictionary<MappedResourceCacheKey, MappedResourceInfoWithStaging>();
+        private readonly Dictionary<MappedResourceCacheKey, MappedResourceInfo> _mappedResources = new Dictionary<MappedResourceCacheKey, MappedResourceInfo>();
 
         private readonly object _resetEventsLock = new object();
         private readonly List<ManualResetEvent[]> _resetEvents = new List<ManualResetEvent[]>();
@@ -863,7 +863,7 @@ namespace Veldrid.OpenGL
             MappedResourceCacheKey key = new MappedResourceCacheKey(resource, subresource);
             lock (_mappedResourceLock)
             {
-                if (_mappedResources.TryGetValue(key, out MappedResourceInfoWithStaging info))
+                if (_mappedResources.TryGetValue(key, out MappedResourceInfo info))
                 {
                     if (info.Mode != mode)
                     {
@@ -1190,7 +1190,7 @@ namespace Veldrid.OpenGL
                             }
                             else
                             {
-                                ExecuteUnmapResource(resourceToMap, resultPtr->Subresource, resetEvent);
+                                ExecuteUnmapResource(resourceToMap, resetEvent, resultPtr);
                             }
                         }
                         break;
@@ -1232,16 +1232,15 @@ namespace Veldrid.OpenGL
                         break;
                         case WorkItemType.TerminateAction:
                         {
-                            // Check if the OpenGL context has already been destroyed by the OS. If so, just exit out.
                             uint error = glGetError();
-                            if (error == (uint)ErrorCode.InvalidOperation)
-                                return;
-                            
-                            _makeCurrent(_gd._glContext);
+                            if (error != (uint)ErrorCode.InvalidOperation) // Check if the OpenGL context has already been destroyed by the OS.
+                            {
+                                _makeCurrent(_gd._glContext);
 
-                            _gd.FlushDisposables();
-                            _gd._clearCurrentContext();
-                            _gd._deleteContext(_gd._glContext);
+                                _gd.FlushDisposables();
+                                _gd._clearCurrentContext();
+                                _gd._deleteContext(_gd._glContext);
+                            }
                             _gd.StagingMemoryPool.Dispose();
                             _terminated = true;
                         }
@@ -1321,6 +1320,8 @@ namespace Veldrid.OpenGL
             {
                 uint subresource = result->Subresource;
                 MapMode mode = result->MapMode;
+                
+                result->Succeeded = true;
 
                 MappedResourceCacheKey key = new MappedResourceCacheKey(resource, subresource);
                 try
@@ -1328,9 +1329,11 @@ namespace Veldrid.OpenGL
                     lock (_gd._mappedResourceLock)
                     {
                         Debug.Assert(!_gd._mappedResources.ContainsKey(key));
+                        
                         if (resource is OpenGLBuffer buffer)
                         {
                             buffer.EnsureResourcesCreated();
+
                             void* mappedPtr;
                             BufferAccessMask accessMask = OpenGLFormats.VdToGLMapMode(mode);
                             if (_gd.Extensions.ARB_DirectStateAccess)
@@ -1347,7 +1350,7 @@ namespace Veldrid.OpenGL
                                 CheckLastError();
                             }
 
-                            MappedResourceInfoWithStaging info = new MappedResourceInfoWithStaging();
+                            MappedResourceInfo info = new MappedResourceInfo();
                             info.MappedResource = new MappedResource(
                                 resource,
                                 mode,
@@ -1355,12 +1358,13 @@ namespace Veldrid.OpenGL
                                 buffer.SizeInBytes);
                             info.RefCount = 1;
                             info.Mode = mode;
+
                             _gd._mappedResources.Add(key, info);
+
                             result->Data = (IntPtr)mappedPtr;
                             result->DataSize = buffer.SizeInBytes;
                             result->RowPitch = 0;
                             result->DepthPitch = 0;
-                            result->Succeeded = true;
                         }
                         else
                         {
@@ -1539,7 +1543,8 @@ namespace Veldrid.OpenGL
 
                             uint rowPitch = FormatHelpers.GetRowPitch(mipWidth, texture.Format);
                             uint depthPitch = FormatHelpers.GetDepthPitch(rowPitch, mipHeight, texture.Format);
-                            MappedResourceInfoWithStaging info = new MappedResourceInfoWithStaging();
+
+                            MappedResourceInfo info = new MappedResourceInfo();
                             info.MappedResource = new MappedResource(
                                 resource,
                                 mode,
@@ -1551,12 +1556,13 @@ namespace Veldrid.OpenGL
                             info.RefCount = 1;
                             info.Mode = mode;
                             info.StagingBlock = block;
+
                             _gd._mappedResources.Add(key, info);
+
                             result->Data = (IntPtr)block.Data;
                             result->DataSize = subresourceSize;
                             result->RowPitch = rowPitch;
                             result->DepthPitch = depthPitch;
-                            result->Succeeded = true;
                         }
                     }
                 }
@@ -1571,19 +1577,24 @@ namespace Veldrid.OpenGL
                 }
             }
 
-            private void ExecuteUnmapResource(MappableResource resource, uint subresource, EventWaitHandle waitHandle)
+            private void ExecuteUnmapResource(MappableResource resource, EventWaitHandle waitHandle, MapParams* result)
             {
+                uint subresource = result->Subresource;
+
+                result->Succeeded = true;
+
                 MappedResourceCacheKey key = new MappedResourceCacheKey(resource, subresource);
                 lock (_gd._mappedResourceLock)
                 {
-                    MappedResourceInfoWithStaging info = _gd._mappedResources[key];
+                    MappedResourceInfo info = _gd._mappedResources[key];
                     if (info.RefCount == 1)
                     {
                         if (resource is OpenGLBuffer buffer)
                         {
+                            bool success;
                             if (_gd.Extensions.ARB_DirectStateAccess)
                             {
-                                glUnmapNamedBuffer(buffer.Buffer);
+                                success = glUnmapNamedBuffer(buffer.Buffer);
                                 CheckLastError();
                             }
                             else
@@ -1591,9 +1602,11 @@ namespace Veldrid.OpenGL
                                 glBindBuffer(BufferTarget.CopyWriteBuffer, buffer.Buffer);
                                 CheckLastError();
                                 
-                                glUnmapBuffer(BufferTarget.CopyWriteBuffer);
+                                success = glUnmapBuffer(BufferTarget.CopyWriteBuffer);
                                 CheckLastError();
                             }
+
+                            result->Succeeded = success;
                         }
                         else
                         {
@@ -1655,6 +1668,9 @@ namespace Veldrid.OpenGL
                 
                 _workItems.Add(new ExecutionThreadWorkItem(resource, &mrp, executionEvent));
                 executionEvent.WaitOne();
+                
+                if (!mrp.Succeeded)
+                    throw new VeldridException("Failed to unmap OpenGL resource.");
 
                 CheckExceptions();
             }
@@ -1872,7 +1888,7 @@ namespace Veldrid.OpenGL
             public uint DepthPitch;
         }
 
-        internal struct MappedResourceInfoWithStaging
+        internal struct MappedResourceInfo
         {
             public int RefCount;
             public MapMode Mode;

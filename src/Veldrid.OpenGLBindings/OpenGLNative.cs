@@ -1666,6 +1666,26 @@ namespace Veldrid.OpenGLBinding
         private delegate void glFinish_t();
         private static glFinish_t p_glFinish;
         public static void glFinish() => p_glFinish();
+        
+        [UnmanagedFunctionPointer(CallConv)]
+        private delegate IntPtr glFenceSync_t(int condition, int flags);
+        private static glFenceSync_t p_glFenceSync;
+        public static GLsync glFenceSync() => new GLsync(p_glFenceSync(0x00009117, 0)); //condition = GL_SYNC_GPU_COMMANDS_COMPLETE
+
+        [UnmanagedFunctionPointer(CallConv)]
+        private delegate void glDeleteSync_t(IntPtr sync);
+        private static glDeleteSync_t p_glDeleteSync;
+        public static void glDeleteSync(GLsync sync) => p_glDeleteSync(sync.Handle);
+        
+        [UnmanagedFunctionPointer(CallConv)]
+        private delegate void glWaitSync_t(IntPtr sync, int flags, long timeout);
+        private static glWaitSync_t p_glWaitSync;
+        public static void glWaitSync(GLsync sync) => p_glWaitSync(sync.Handle, 0, -1); //timeout = GL_TIMEOUT_IGNORED
+        
+        [UnmanagedFunctionPointer(CallConv)]
+        private delegate ClientSyncStatus glClientWaitSync_t(IntPtr sync, int flags, ulong timeout);
+        private static glClientWaitSync_t p_glClientWaitSync;
+        public static ClientSyncStatus glClientWaitSync(GLsync sync, long nanoTimeout) => p_glClientWaitSync(sync.Handle, 1, (ulong)nanoTimeout); //flags = GL_SYNC_FLUSH_COMMANDS_BIT
 
         [UnmanagedFunctionPointer(CallConv)]
         private delegate void glPushDebugGroup_t(DebugSource source, uint id, uint length, byte* message);
@@ -1895,6 +1915,11 @@ namespace Veldrid.OpenGLBinding
             LoadFunction("glGetFramebufferAttachmentParameteriv", out p_glGetFramebufferAttachmentParameteriv);
             LoadFunction("glFlush", out p_glFlush);
             LoadFunction("glFinish", out p_glFinish);
+                        
+            LoadFunction("glFenceSync", out p_glFenceSync);
+            LoadFunction("glDeleteSync", out p_glDeleteSync);
+            LoadFunction("glWaitSync", out p_glWaitSync);
+            LoadFunction("glClientWaitSync", out p_glClientWaitSync);
 
             LoadFunction("glPushDebugGroup", out p_glPushDebugGroup);
             LoadFunction("glPopDebugGroup", out p_glPopDebugGroup);

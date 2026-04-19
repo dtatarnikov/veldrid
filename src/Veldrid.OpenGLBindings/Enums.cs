@@ -2062,4 +2062,12 @@ namespace Veldrid.OpenGLBinding
         Layered = 0x8DA7,
         LayerTargets = 0x8DA8,
     }
+
+    public enum ClientSyncStatus
+    {
+        AlreadySignaled = 37146, // 0x911A
+        TimeoutExpired = 37147, // 0x911B
+        ConditionSatisfied = 37148, // 0x911C
+        WaitFailed = 37149 // 0x911D
+    }
 }

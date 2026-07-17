@@ -132,26 +132,27 @@ namespace Veldrid.D3D11
                     }
                 }
 
-                ComObject co = new ComObject(uwpSource.SwapChainPanelNative);
-
-                ISwapChainPanelNative swapchainPanelNative = co.QueryInterfaceOrNull<ISwapChainPanelNative>();
-                if (swapchainPanelNative != null)
+                using (ComObject co = new ComObject(uwpSource.SwapChainPanelNative))
                 {
-                    swapchainPanelNative.SetSwapChain(_dxgiSwapChain);
-                }
-                else
-                {
-                    ISwapChainBackgroundPanelNative bgPanelNative = co.QueryInterfaceOrNull<ISwapChainBackgroundPanelNative>();
-                    if (bgPanelNative != null)
+                    ISwapChainPanelNative swapchainPanelNative = co.QueryInterfaceOrNull<ISwapChainPanelNative>();
+                    if (swapchainPanelNative != null)
                     {
-                        bgPanelNative.SetSwapChain(_dxgiSwapChain);
+                        swapchainPanelNative.SetSwapChain(_dxgiSwapChain);
                     }
-                    else//Support WinUI3 see https://github.com/mellinoe/veldrid/pull/416
+                    else
                     {
-                        Vortice.WinUI.ISwapChainPanelNative winuiSwapchainPanelNative = co.QueryInterfaceOrNull<Vortice.WinUI.ISwapChainPanelNative>();
-                        if (winuiSwapchainPanelNative != null)
+                        ISwapChainBackgroundPanelNative bgPanelNative = co.QueryInterfaceOrNull<ISwapChainBackgroundPanelNative>();
+                        if (bgPanelNative != null)
                         {
-                            winuiSwapchainPanelNative.SetSwapChain(_dxgiSwapChain);
+                            bgPanelNative.SetSwapChain(_dxgiSwapChain);
+                        }
+                        else //Support WinUI3 see https://github.com/mellinoe/veldrid/pull/416
+                        {
+                            Vortice.WinUI.ISwapChainPanelNative winuiSwapchainPanelNative = co.QueryInterfaceOrNull<Vortice.WinUI.ISwapChainPanelNative>();
+                            if (winuiSwapchainPanelNative != null)
+                            {
+                                winuiSwapchainPanelNative.SetSwapChain(_dxgiSwapChain);
+                            }
                         }
                     }
                 }
@@ -179,10 +180,7 @@ namespace Veldrid.D3D11
             if (_framebuffer != null)
             {
                 resizeBuffers = true;
-                if (_depthTexture != null)
-                {
-                    _depthTexture.Dispose();
-                }
+                _depthTexture?.Dispose();
 
                 backBufferTexture.Dispose();
                 _framebuffer.Dispose();
@@ -243,6 +241,7 @@ namespace Veldrid.D3D11
             if (!_disposed)
             {
                 _depthTexture?.Dispose();
+                backBufferTexture?.Dispose();
                 _framebuffer.Dispose();
                 _dxgiSwapChain.Dispose();
 

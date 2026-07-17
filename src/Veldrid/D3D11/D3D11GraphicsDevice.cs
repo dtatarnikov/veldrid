@@ -76,7 +76,7 @@ namespace Veldrid.D3D11
 
         public D3D11GraphicsDevice(D3D11DeviceOptions options, SwapchainDescription? swapchainDesc)
         {
-            var flags = (DeviceCreationFlags)options.DeviceCreationFlags;
+            DeviceCreationFlags flags = (DeviceCreationFlags)options.DeviceCreationFlags;
 #if DEBUG
             flags |= DeviceCreationFlags.Debug;
 #endif
